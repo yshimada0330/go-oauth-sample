@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-oauth2/oauth2/v4"
@@ -13,6 +11,8 @@ import (
 	"github.com/go-oauth2/oauth2/v4/models"
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
+
+	"github.com/yshimada0330/go-oauth-sample/middleware"
 )
 
 func main() {
@@ -73,22 +73,11 @@ func main() {
 		}
 	})
 
-	// curl -X GET "http://localhost:8080/test"  -H "Authorization: Bearer {TOKEN}"
-	r.GET("/test", func(c *gin.Context) {
-		token, err := srv.ValidationBearerToken(c.Request)
-		// NOTE: scopeのチェックは、自前で実装して、errors.ErrInvalidScope のようなエラーを返すようにしないといけない
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-			return
-		}
-		data := map[string]interface{}{
-			"expires_in": int64(token.GetAccessCreateAt().Add(token.GetAccessExpiresIn()).Sub(time.Now()).Seconds()),
-			"client_id":  token.GetClientID(),
-			"scope":      token.GetScope(),
-		}
-		e := json.NewEncoder(c.Writer)
-		e.SetIndent("", "  ")
-		e.Encode(data)
+	private := r.Group("/private", middleware.AuthorizeMiddleware(srv))
+
+	// curl -X GET "http://private/localhost:8080/test"  -H "Authorization: Bearer {TOKEN}"
+	private.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Authorized successfully "})
 	})
 
 	r.Run() // 0.0.0.0:8080 でサーバーを立てます。
