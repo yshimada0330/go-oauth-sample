@@ -12,7 +12,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
 
-	"github.com/yshimada0330/go-oauth-sample/middleware"
+	"github.com/yshimada0330/go-oauth-sample/handler"
 )
 
 func main() {
@@ -65,6 +65,12 @@ func main() {
 		log.Println("Response Error:", re.Error.Error())
 	})
 
+	r.Use(func(srv *server.Server) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			c.Set("hoge", srv)
+		}
+	}(srv))
+
 	r.POST("/token", func(c *gin.Context) {
 		err := srv.HandleTokenRequest(c.Writer, c.Request)
 		if err != nil {
@@ -73,12 +79,8 @@ func main() {
 		}
 	})
 
-	private := r.Group("/private", middleware.AuthorizeMiddleware(srv))
-
 	// curl -X GET "http://private/localhost:8080/test"  -H "Authorization: Bearer {TOKEN}"
-	private.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "Authorized successfully "})
-	})
+	r.GET("/test", handler.Test)
 
 	r.Run() // 0.0.0.0:8080 でサーバーを立てます。
 }
