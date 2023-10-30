@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/models"
@@ -51,6 +54,8 @@ func main() {
 
 	srv.SetClientInfoHandler(clientHandler)
 
+	srv.SetClientScopeHandler(clientScopeHandler)
+
 	srv.SetInternalErrorHandler(func(err error) (re *errors.Response) {
 		log.Println("Internal Error:", err.Error())
 		return
@@ -66,6 +71,24 @@ func main() {
 			c.JSON(http.StatusOK, gin.H{"message": err.Error()})
 			return
 		}
+	})
+
+	// curl -X GET "http://localhost:8080/test"  -H "Authorization: Bearer {TOKEN}"
+	r.GET("/test", func(c *gin.Context) {
+		token, err := srv.ValidationBearerToken(c.Request)
+		// NOTE: scopeのチェックは、自前で実装して、errors.ErrInvalidScope のようなエラーを返すようにしないといけない
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
+		}
+		data := map[string]interface{}{
+			"expires_in": int64(token.GetAccessCreateAt().Add(token.GetAccessExpiresIn()).Sub(time.Now()).Seconds()),
+			"client_id":  token.GetClientID(),
+			"scope":      token.GetScope(),
+		}
+		e := json.NewEncoder(c.Writer)
+		e.SetIndent("", "  ")
+		e.Encode(data)
 	})
 
 	r.Run() // 0.0.0.0:8080 でサーバーを立てます。
@@ -88,4 +111,16 @@ func clientHandler(r *http.Request) (string, string, error) {
 	}
 
 	return "", "", err
+}
+
+// NOTE:
+// - HandleAuthorizeRequest
+// - パスワード、クライアントクレデンシャルのトークン発行時
+// に呼ばれる
+// ValidationBearerToken では呼ばれない
+func clientScopeHandler(tgr *oauth2.TokenGenerateRequest) (bool, error) {
+	log.Println("URL", tgr.Request.URL)
+	log.Println("ClientID:", tgr.ClientID)
+	log.Println("scope:", tgr.Scope)
+	return true, nil
 }
