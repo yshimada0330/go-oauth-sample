@@ -9,9 +9,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/manage"
-	"github.com/go-oauth2/oauth2/v4/models"
 	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-oauth2/oauth2/v4/store"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -38,6 +36,7 @@ func init() {
 	}
 
 	db.AutoMigrate(&repository.AccessToken{})
+	db.AutoMigrate(&repository.Client{})
 }
 
 func main() {
@@ -51,12 +50,7 @@ func main() {
 	manager := manage.NewDefaultManager()
 	manager.MapTokenStorage(repository.NewDBTokenStore(db))
 
-	clientStore := store.NewClientStore()
-	clientStore.Set("000000", &models.Client{
-		ID:     "000000",
-		Secret: "999999",
-		Domain: "http://localhost",
-	})
+	clientStore := repository.NewDBClientStore(db)
 	manager.MapClientStorage(clientStore)
 
 	srv := server.NewDefaultServer(manager)
