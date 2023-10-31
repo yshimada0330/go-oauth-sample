@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -12,8 +13,32 @@ import (
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
 
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+
 	"github.com/yshimada0330/go-oauth-sample/handler"
+	"github.com/yshimada0330/go-oauth-sample/repository"
 )
+
+var db *gorm.DB
+
+func init() {
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		"root",
+		"oauth2test",
+		"0.0.0.0",
+		"3312",
+		"oauth2_test",
+	)
+
+	db, _ = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if db == nil {
+		panic("db nil")
+	}
+
+	db.AutoMigrate(&repository.AccessToken{})
+}
 
 func main() {
 	r := gin.Default()
@@ -24,7 +49,7 @@ func main() {
 	})
 
 	manager := manage.NewDefaultManager()
-	manager.MustTokenStorage(store.NewMemoryTokenStore())
+	manager.MapTokenStorage(repository.NewDBTokenStore(db))
 
 	clientStore := store.NewClientStore()
 	clientStore.Set("000000", &models.Client{
@@ -79,7 +104,7 @@ func main() {
 		}
 	})
 
-	// curl -X GET "http://private/localhost:8080/test"  -H "Authorization: Bearer {TOKEN}"
+	// curl -X GET "http://localhost:8080/test"  -H "Authorization: Bearer {TOKEN}"
 	r.GET("/test", handler.Test)
 
 	r.Run() // 0.0.0.0:8080 でサーバーを立てます。
