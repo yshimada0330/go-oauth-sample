@@ -125,6 +125,9 @@ func clientScopeHandler(tgr *oauth2.TokenGenerateRequest) (bool, error) {
 	log.Println("ClientID:", tgr.ClientID)
 	log.Println("scope:", tgr.Scope)
 
+	// ここで本来必要だった scope を設定することもできる
+	// tgr.Scope = "apartment:read"
+
 	// NOTE: tgr.Scope がトークン発行時にリクエストされた scope
 	// ex.)  curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Authorization: Basic MDAwMDAwOjk5OTk5OQ==" -d "grant_type=client_credentials" -d "scope=apartment:read apartment:write" http://localhost:8080/token
 	// ここで、ClientID からリクエストされたscopeを渡して良いかチェックを行う
