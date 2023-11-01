@@ -76,7 +76,8 @@ func main() {
 	// curl -X GET "http://localhost:8080/test"  -H "Authorization: Bearer {TOKEN}"
 	r.GET("/test", func(c *gin.Context) {
 		token, err := srv.ValidationBearerToken(c.Request)
-		// NOTE: scopeのチェックは、自前で実装して、errors.ErrInvalidScope のようなエラーを返すようにしないといけない
+		// NOTE: エンドポイントごとの
+		// scopeのチェックは、自前で実装して、errors.ErrInvalidScope のようなエラーを返すようにしないといけない
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
@@ -118,9 +119,14 @@ func clientHandler(r *http.Request) (string, string, error) {
 // - パスワード、クライアントクレデンシャルのトークン発行時
 // に呼ばれる
 // ValidationBearerToken では呼ばれない
+// client credentials flowの場合 には トークン発行時に scopeパラメータで必要なパラメータをリクエストしてくるので、それをここでチェックする
 func clientScopeHandler(tgr *oauth2.TokenGenerateRequest) (bool, error) {
 	log.Println("URL", tgr.Request.URL)
 	log.Println("ClientID:", tgr.ClientID)
 	log.Println("scope:", tgr.Scope)
+
+	// NOTE: tgr.Scope がトークン発行時にリクエストされた scope
+	// ex.)  curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Authorization: Basic MDAwMDAwOjk5OTk5OQ==" -d "grant_type=client_credentials" -d "scope=apartment:read apartment:write" http://localhost:8080/token
+	// ここで、ClientID からリクエストされたscopeを渡して良いかチェックを行う
 	return true, nil
 }
