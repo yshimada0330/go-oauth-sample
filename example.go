@@ -53,6 +53,8 @@ func main() {
 	clientStore := repository.NewDBClientStore(db)
 	manager.MapClientStorage(clientStore)
 
+	authorizeHandler := handler.NewAuthorizeHandler(clientStore)
+
 	srv := server.NewDefaultServer(manager)
 	// srv.SetAllowGetAccessRequest(true)
 
@@ -99,7 +101,7 @@ func main() {
 	})
 
 	// curl -X GET "http://localhost:8080/test"  -H "Authorization: Bearer {TOKEN}"
-	r.GET("/test", handler.Test)
+	r.GET("/test", authorizeHandler.Test)
 
 	r.Run() // 0.0.0.0:8080 でサーバーを立てます。
 }

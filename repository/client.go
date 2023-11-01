@@ -33,5 +33,15 @@ func (s *ClientStorage) GetByID(ctx context.Context, id string) (oauth2.ClientIn
 	}, nil
 }
 
+func (s *ClientStorage) FindByClientId(clientId string) (Client, error) {
+	var client Client
+	err := s.db.First(&client, "client_id = ?", clientId).Error
+	if err != nil {
+		return Client{}, gorm.ErrRecordNotFound
+	}
+
+	return client, nil
+}
+
 // oauth2.ClientStoreのインターフェイス上は必要ないがclientを作成するためのメソッドは必要
 // oauth2.ClientStoreの実装とは切り離して考える話なので、どこにどう実装するかは設計時に考える
